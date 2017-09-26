@@ -1,1 +1,2 @@
-*.jpg
+./RedChair/*
+.DS_Store
