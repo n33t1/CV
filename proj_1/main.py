@@ -35,11 +35,11 @@ def diff(trans_image,thres):
 		#iii. Threshold the absolute values of the derivatives to create a 0 and 1 mask of the moving objects.
 		for i in range(0,len(time_axis)):
 			if i == 0 or i == len(time_axis) - 1:
-				pix_res.append(time_axis[i])
+				pix_res.append(0)
 			elif abs(time_axis[i - 1] - time_axis[i + 1]) > thres:
 				pix_res.append(255)
 			else:
-				pix_res.append(time_axis[i])
+				pix_res.append(0)
 		#iv. Combine the mask with the original frame to display the results.
 		pix_res_arr = np.asarray(pix_res)
 		result.append(pix_res_arr)
@@ -74,8 +74,8 @@ for filename in sorted(glob.glob('RedChair/*.jpg')):
 #Transpose array to be described as a list of lists, where each list is a single pixel's values as it changes over time
 trans_image_list = np.asarray(image_list).T
 
-images_output = gaussian(trans_image_list, thres)
-# images_output = diff(trans_image_list, thres)
+# images_output = gaussian(trans_image_list, thres)
+images_output = diff(trans_image_list, thres)
 
 #output the image
 output_image(images_output)
