@@ -2,10 +2,9 @@ from PIL import Image
 import numpy as np
 import glob
 from scipy.ndimage.filters import gaussian_filter
-import os
+import os, shutil
 
 image_list = []
-thres = 30 	# Threshold used to determine if something is moving through that pixel
 
 """function takes np arrary and threshold as input, output a np array classified with only 
 pixel value of 0 or 255"""
@@ -50,32 +49,93 @@ def diff(trans_image,thres):
 
 	return result_array
 
-def output_image(images_output):
-    if not os.path.exists('results'):
-        os.makedirs('results')
+def output_image(images_output, name):
+    dir_name = 'results_'+name
+    if not os.path.exists(dir_name):
+        os.makedirs(dir_name)
     else:
-        os.rmdir('results')
-        os.makedirs('results')
+        shutil.rmtree(dir_name)
+        os.makedirs(dir_name)
     image_result = np.asarray(images_output, dtype='uint8') #if values still in range 0-255! 
     i = 0
     for single_image in image_result:
         out = single_image.reshape((240, 320))
         w = Image.fromarray(out, mode='L')
-        w.save('results/out_%s.jpg' % i)
+        w.save(dir_name+'/out_%s.jpg' % i)
         i = i + 1
     
-#i. Read in a sequence of image frames and make them grayscale.
-for filename in sorted(glob.glob('RedChair/*.jpg')):
-    im = Image.open(filename)
-    im = im.convert('L') #makes it greyscale
-    im_np = np.asarray(im.getdata(), dtype='uint8')
-    image_list.append(im_np)
+def preprocess_image(dir_name):
+    #i. Read in a sequence of image frames and make them grayscale.
+    for filename in sorted(glob.glob(dir_name+'/*.jpg')):
+        im = Image.open(filename)
+        im = im.convert('L') #makes it greyscale
+        im_np = np.asarray(im.getdata(), dtype='uint8')
+        image_list.append(im_np)
 
-#Transpose array to be described as a list of lists, where each list is a single pixel's values as it changes over time
-trans_image_list = np.asarray(image_list).T
+    #Transpose array to be described as a list of lists, where each list is a single pixel's values as it changes over time
+    return np.asarray(image_list).T
 
-# images_output = gaussian(trans_image_list, thres)
-images_output = diff(trans_image_list, thres)
+def select_dataset(flag):
+    print ("""
+        Which dataset do you want to use?
+            1. Office
+            2. Red chair
+            3. EnterExitCrossingPaths2cor
+        """)
+    dataset=raw_input("Please Select:") 
+    if dataset =='1': 
+        print "Your image is being processed..."
+        return preprocess_image("Office")
+    elif dataset == '2': 
+        print "Your image is being processed..."
+        return preprocess_image("RedChair")
+    elif dataset == '3':
+        print "Your image is being processed..."
+        return preprocess_image("EnterExitCrossingPaths2cor")
+    else: 
+        print "Unknown Option Selected!" 
+        flag = False
+        return
 
-#output the image
-output_image(images_output)
+def select_function(trans_image_list, thres):
+    while True: 
+        print ("""
+        Which function do you want to use?
+            1. Linear temporal derivative filter
+            2. 1D Gaussian temporal derivative filter
+            3. Spatial box filters
+            4. 3D Gaussian box filter
+            5. Exit/Quit
+        """)
+
+        selection=raw_input("Please Select:") 
+        if selection =='1': 
+            print "Program is running..."
+            images_output = diff(trans_image_list, thres)
+            #output the image
+            output_image(images_output, "LinearTemporal")
+        elif selection == '2': 
+            print "Program is running..."
+            images_output = gaussian(trans_image_list, thres)
+            #output the image
+            output_image(images_output, "GaussianTemporal")
+        elif selection == '3':
+            print "find" 
+        elif selection == '4':
+            print "find" 
+        elif selection == '5': 
+            break
+        else: 
+            print "Unknown Option Selected!" 
+    return
+
+# main
+# prompt the user to select dataset
+flag = False
+while not flag:
+    flag = True
+    trans_image_list = select_dataset(flag)
+
+thres = input("Please enter a threshold value: ") 	# Threshold used to determine if something is moving through that pixel
+# prompt the user to select a function to use
+select_function(trans_image_list, thres)
