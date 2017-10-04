@@ -52,21 +52,6 @@ def diff(trans_image,thres):
 
 	return result_array
 
-def output_image(images_output, name):
-    dir_name = 'results_'+name
-    if not os.path.exists(dir_name):
-        os.makedirs(dir_name)
-    else:
-        shutil.rmtree(dir_name)
-        os.makedirs(dir_name)
-    image_result = np.asarray(images_output, dtype='uint8') #if values still in range 0-255! 
-    i = 0
-    for single_image in image_result:
-        out = single_image.reshape((240, 320))
-        w = Image.fromarray(out, mode='L')
-        w.save(dir_name+'/out_%s.jpg' % i)
-        i = i + 1
-
 """function takes np arrary as input, output a np array classified with only 
 pixel value of 0 or 255"""
 def BoxSmooth(input_image, n):
@@ -87,15 +72,12 @@ def BoxSmooth(input_image, n):
 pixel value of 0 or 255"""
 def GaussianSmooth(input_image):
 	# prompt user input
-	ssigma = input('Enter standard deviation tsigma for Gaussian filter: ')
-	out = gaussian_filter(input_image, sigma=ssigma)
+	ssigma = input('Enter standard deviation ssigma for Gaussian filter: ')
+	result = []
 
-	for image in input_image:
-		temp_image = image.reshape(240,320)
-		temp_image = signal.convolve2d(temp_image, kernel, mode='same', boundary='symm')
-		temp_image = temp_image.reshape(76800)
-		temp_image /= kernel.sum()
-		result.append(temp_image)
+	for image in image_list:
+		out = gaussian_filter(image, sigma=ssigma)
+		result.append(out)
 
 	return np.asarray(result, dtype='uint8')
     
@@ -109,6 +91,21 @@ def preprocess_image(dir_name):
 
     #Transpose array to be described as a list of lists, where each list is a single pixel's values as it changes over time
     return np.asarray(image_list)
+
+def output_image(images_output, name):
+    dir_name = 'results_'+name
+    if not os.path.exists(dir_name):
+        os.makedirs(dir_name)
+    else:
+        shutil.rmtree(dir_name)
+        os.makedirs(dir_name)
+    image_result = np.asarray(images_output, dtype='uint8') #if values still in range 0-255! 
+    i = 0
+    for single_image in image_result:
+        out = single_image.reshape((240, 320))
+        w = Image.fromarray(out, mode='L')
+        w.save(dir_name+'/out_%s.jpg' % i)
+        i = i + 1
 
 def select_dataset(flag):
     print ("""
@@ -132,41 +129,68 @@ def select_dataset(flag):
         flag = False
         return
 
-def select_function(trans_image_list, thres):
-    while True: 
-        print ("""
-        Which function do you want to use?
-            1. Linear temporal derivative filter
-            2. 1D Gaussian temporal derivative filter
-            3. Spatial box filters
-            4. 3D Gaussian box filter
-            5. Exit/Quit
-        """)
+def select_filter(image_list): 
+	print ("""
+	Which filter do you want to use?
+		1. Spatial box filters
+		2. 2D Gaussian box filter
+		3. None
+		4. Exit/Quit
+	""")
+	selection=raw_input("Please Select:") 
+	if selection =='1': 
+		n = input('Enter 3 for 3x3 or 5 for 5x5: ')
+		print "Program is running..."
+		images_output = BoxSmooth(image_list, n)
+	elif selection == '2':
+		print "Program is running..."
+		images_output = GaussianSmooth(image_list)
+	elif selection == '3': 
+		return image_list
+	else: 
+		print "Unknown Option Selected!" 
+	return images_output
 
-        selection=raw_input("Please Select:") 
-        if selection =='1': 
-            print "Program is running..."
-            images_output = diff(trans_image_list, thres)
-            #output the image
-            output_image(images_output, "LinearTemporal")
-        elif selection == '2': 
-            print "Program is running..."
-            images_output = gaussian(trans_image_list, thres)
-            #output the image
-            output_image(images_output, "GaussianTemporal")
-        elif selection == '3':
-            n = input('Enter 3 for 3x3 or 5 for 5x5: ')
-            print "Program is running..."
-            images_output = BoxSmooth(trans_image_list, n)
-            #output the image
-            output_image(images_output, "BoxSmooth")
-        elif selection == '4':
-            print "find" 
-        elif selection == '5': 
-            break
-        else: 
-            print "Unknown Option Selected!" 
-    return
+def select_function(image_list, thres):
+	while True:
+		print ("""
+		Which function do you want to use?
+		    1. Linear temporal derivative filter
+		    2. 1D Gaussian temporal derivative filter
+		    3. Spatial box filters
+		    4. 2D Gaussian box filter
+		    5. Exit/Quit
+		""")
+
+		selection=raw_input("Please Select:") 
+		if selection =='1': 
+			image_output = select_filter(image_list)
+			print "Program is running..."
+			images_output = diff(image_output, thres)
+			#output the image
+			output_image(images_output, "LinearTemporal")
+		elif selection == '2': 
+			image_output = select_filter(image_list)
+			print "Program is running..."
+			images_output = gaussian(image_output, thres)
+			#output the image
+			output_image(images_output, "GaussianTemporal")
+		elif selection == '3':
+			n = input('Enter 3 for 3x3 or 5 for 5x5: ')
+			print "Program is running..."
+			images_output = BoxSmooth(image_list, n)
+			#output the image
+			output_image(images_output, "BoxSmooth")
+		elif selection == '4':
+			print "Program is running..."
+			images_output = GaussianSmooth(image_list)
+			#output the image
+			output_image(images_output, "GaussianSmooth")
+		elif selection == '5': 
+			break
+		else: 
+			print "Unknown Option Selected!" 
+	return
 
 # main
 # prompt the user to select dataset
