@@ -4,11 +4,11 @@ import glob
 from scipy.ndimage.filters import gaussian_filter
 from scipy import signal
 import os, shutil
+import imageio
 
 image_list = []
 
-"""function takes np arrary and threshold as input, output a np array classified with only 
-pixel value of 0 or 255"""
+"""function takes np arrary and threshold as input, outputs np array with temporal gaussian filtering"""
 def gaussian(trans_array, thres):
     trans_array = trans_array.T
 	# prompt user input
@@ -16,6 +16,11 @@ def gaussian(trans_array, thres):
     result = []
     for time_axis in trans_array:
 		out = gaussian_filter(time_axis, order=1, sigma=tsigma)
+		for pixel in out:
+			if pixel < thres:
+				pixel = 0
+			else:
+				pixel = 255
 		result.append(out)
 
     # Transpose the results to match the original image
@@ -23,8 +28,7 @@ def gaussian(trans_array, thres):
     result_array = np.transpose(trans_result_array)
     return result_array
 
-"""function takes np arrary and threshold as input, output a np array classified with only 
-pixel value of 0 or 255"""
+"""function takes np arrary and threshold as input, outputs np array with temporal linear filtering"""
 def diff(trans_image,thres):
 	result = []
 	trans_image_list = trans_image.T.tolist()
@@ -37,11 +41,14 @@ def diff(trans_image,thres):
 				pix_res.append(255)
 			else:
 				pix_res.append(0)
+#		for i in range(1,len(time_axis) - 1):
+#			pix_res.append(abs(time_axis[i - 1] - time_axis[i + 1]) )
 		#iv. Combine the mask with the original frame to display the results.
 		pix_res.append(0)
 		pix_res_arr = np.asarray(pix_res)
 		result.append(pix_res_arr)
-	
+
+#	print np.histogram(result, bins=np.linspace(0, 255, num = 52))
 	# Transpose the results to match the original image
 	trans_result_array = np.asarray(result, dtype='uint8')
 	result_array = np.transpose(trans_result_array)
@@ -49,45 +56,46 @@ def diff(trans_image,thres):
 	return result_array
 
 def output_image(images_output, name):
-    dir_name = name+'_Results'
-    if not os.path.exists(dir_name):
-        os.makedirs(dir_name)
-    else:
-        shutil.rmtree(dir_name)
-        os.makedirs(dir_name)
-    image_result = np.asarray(images_output, dtype='uint8') #if values still in range 0-255! 
-    i = 0
-    for single_image in image_result:
-        out = single_image.reshape((240, 320))
-        w = Image.fromarray(out, mode='L')
-        w.save(dir_name+'/out_%s.jpg' % i)
-        i = i + 1
+	dir_name = name+'_Results'
+	if not os.path.exists(dir_name):
+		os.makedirs(dir_name)
+	else:
+		shutil.rmtree(dir_name)
+		os.makedirs(dir_name)
+	image_result = np.asarray(images_output, dtype='uint8') #if values still in range 0-255! 
+	result = []
+	for single_image in image_result:
+		single_image = single_image.reshape((240, 320))
+        result.append(np.asarray(single_image))
 
-"""function takes np arrary as input, output a np array classified with only 
-pixel value of 0 or 255"""
+	image_result = np.asarray(result, dtype='uint8')
+	imageio.mimsave(dir_name+'.gif', image_result)
+
+"""function takes np arrary and kernel size n as input, outputs np array with spatial box smoothing"""
 def BoxSmooth(input_image, n):
 	result = []
 	# Create an NxN box kernel to use for filtering
 	kernel = np.linspace(1, 1, num = n * n).reshape((n,n))
 
 	for image in input_image:
-		temp_image = image.reshape(240,320)
-		temp_image = signal.convolve2d(temp_image, kernel, mode='same', boundary='symm')
-		temp_image = temp_image.reshape(76800)
-		temp_image /= kernel.sum()
-		result.append(temp_image)
+		out = image.reshape(240,320)
+		out = signal.convolve2d(out, kernel, mode='same', boundary='symm')
+		out = out.reshape(76800)
+		out /= kernel.sum()
+		result.append(out)
 
 	return np.asarray(result, dtype='uint8')
 
-"""function takes np arrary as input, output a np array classified with only 
-pixel value of 0 or 255"""
+"""function takes np arrary and threshold as input, outputs np array with temporal gaussian filtering"""
 def GaussianSmooth(input_image):
 	# prompt user input
 	ssigma = input('Enter standard deviation ssigma for Gaussian filter: ')
 	result = []
 
 	for image in image_list:
-		out = gaussian_filter(image, sigma=ssigma)
+		out = image.reshape(240,320)
+		out = gaussian_filter(out, sigma=ssigma)
+		out = out.reshape(76800)
 		result.append(out)
 
 	return np.asarray(result, dtype='uint8')
@@ -182,7 +190,7 @@ def select_temporal_filter(filtered_trans_image_list, thres):
             print "Program is running..."
             images_output = gaussian(filtered_trans_image_list[0], thres)
             output_image(images_output, filtered_trans_image_list[1]+"_GaussianTemporal")
-        elif selection == '3': 
+        elif selection == '3':
             break
         else: 
             print "Unknown Option Selected!" 
