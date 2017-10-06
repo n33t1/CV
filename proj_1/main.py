@@ -18,10 +18,6 @@ def gaussian(trans_array, thres):
 		out = gaussian_filter(time_axis, order=1, sigma=tsigma)
 		result.append(out)
 
-    # for i in range(len(out)):
-    #     pix_res = np.array([255 if out[i][j] > thres else trans_array[i][j] for j in range(len(out[i]))])
-    #     result.append(pix_res)
-
     # Transpose the results to match the original image
     trans_result_array = np.asarray(result, dtype='uint8')
     result_array = np.transpose(trans_result_array)
@@ -53,7 +49,7 @@ def diff(trans_image,thres):
 	return result_array
 
 def output_image(images_output, name):
-    dir_name = 'results_'+name
+    dir_name = name+'_Results'
     if not os.path.exists(dir_name):
         os.makedirs(dir_name)
     else:
@@ -132,37 +128,49 @@ def select_dataset(flag):
         flag = False
         return
 
-def select_function(trans_image_list, thres):
+def select_spatial_filter(trans_image_list, thres):
+    print ("""
+    Which spatial filter do you want to use?
+        1. 3x3 box filter
+        2. 5x5 box filter
+        3. 2D Gaussian box filter
+        4. I don't want to use any spatial filter
+    """)
+
+    selection=raw_input("Please Select:") 
+    if selection =='1': 
+        print "Program is running..."
+        return [BoxSmooth(trans_image_list, 3), "3x3BoxSmooth"]
+    elif selection == '2': 
+        print "Program is running..."
+        return [BoxSmooth(trans_image_list, 5), "5x5BoxSmooth"]
+    elif selection == '3':
+        print "Program is running..."
+        return 
+    elif selection == '4':
+        return trans_image_list
+    else: 
+        print "Unknown Option Selected!" 
+
+def select_temporal_filter(filtered_trans_image_list, thres):
     while True: 
         print ("""
         Which function do you want to use?
             1. Linear temporal derivative filter
             2. 1D Gaussian temporal derivative filter
-            3. Spatial box filters
-            4. 3D Gaussian box filter
-            5. Exit/Quit
+            3. Exit/Quit
         """)
 
         selection=raw_input("Please Select:") 
         if selection =='1': 
             print "Program is running..."
-            images_output = diff(trans_image_list, thres)
-            #output the image
-            output_image(images_output, "LinearTemporal")
+            images_output = diff(filtered_trans_image_list[0], thres)
+            output_image(images_output, "LinearTemporal"+filtered_trans_image_list[1])
         elif selection == '2': 
             print "Program is running..."
-            images_output = gaussian(trans_image_list, thres)
-            #output the image
-            output_image(images_output, "GaussianTemporal")
-        elif selection == '3':
-            n = input('Enter 3 for 3x3 or 5 for 5x5: ')
-            print "Program is running..."
-            images_output = BoxSmooth(trans_image_list, n)
-            #output the image
-            output_image(images_output, "BoxSmooth")
-        elif selection == '4':
-            print "find" 
-        elif selection == '5': 
+            images_output = gaussian(filtered_trans_image_list[0], thres)
+            output_image(images_output, "GaussianTemporal"+filtered_trans_image_list[1])
+        elif selection == '3': 
             break
         else: 
             print "Unknown Option Selected!" 
@@ -177,4 +185,4 @@ while not flag:
 
 thres = input("Please enter a threshold value: ") 	# Threshold used to determine if something is moving through that pixel
 # prompt the user to select a function to use
-select_function(trans_image_list, thres)
+select_temporal_filter(select_spatial_filter(trans_image_list, thres), thres)
