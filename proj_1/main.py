@@ -103,20 +103,20 @@ def preprocess_image(dir_name):
     #Transpose array to be described as a list of lists, where each list is a single pixel's values as it changes over time
     return np.asarray(image_list)
 
-def output_image(images_output, name):
-    dir_name = 'results_'+name
-    if not os.path.exists(dir_name):
-        os.makedirs(dir_name)
-    else:
-        shutil.rmtree(dir_name)
-        os.makedirs(dir_name)
-    image_result = np.asarray(images_output, dtype='uint8') #if values still in range 0-255! 
-    i = 0
-    for single_image in image_result:
-        out = single_image.reshape((240, 320))
-        w = Image.fromarray(out, mode='L')
-        w.save(dir_name+'/out_%s.jpg' % i)
-        i = i + 1
+# def output_image(images_output, name):
+#     dir_name = 'results_'+name
+#     if not os.path.exists(dir_name):
+#         os.makedirs(dir_name)
+#     else:
+#         shutil.rmtree(dir_name)
+#         os.makedirs(dir_name)
+#     image_result = np.asarray(images_output, dtype='uint8') #if values still in range 0-255! 
+#     i = 0
+#     for single_image in image_result:
+#         out = single_image.reshape((240, 320))
+#         w = Image.fromarray(out, mode='L')
+#         w.save(dir_name+'/out_%s.jpg' % i)
+#         i = i + 1
 
 def select_dataset(flag):
     print ("""
@@ -158,7 +158,7 @@ def select_spatial_filter(trans_image_list, thres):
         return [BoxSmooth(trans_image_list, 5), "5x5BoxSmooth_"]
     elif selection == '3':
         print "Program is running..."
-        return [GaussianSmooth(trans_image_list, 3), "GaussianSmooth_"]
+        return [GaussianSmooth(trans_image_list), "GaussianSmooth_"]
     elif selection == '4':
         return [trans_image_list, "Native_"]
     else: 
