@@ -83,15 +83,12 @@ def BoxSmooth(input_image, n):
 pixel value of 0 or 255"""
 def GaussianSmooth(input_image):
 	# prompt user input
-	ssigma = input('Enter standard deviation tsigma for Gaussian filter: ')
-	out = gaussian_filter(input_image, sigma=ssigma)
+	ssigma = input('Enter standard deviation ssigma for Gaussian filter: ')
+	result = []
 
-	for image in input_image:
-		temp_image = image.reshape(240,320)
-		temp_image = signal.convolve2d(temp_image, kernel, mode='same', boundary='symm')
-		temp_image = temp_image.reshape(76800)
-		temp_image /= kernel.sum()
-		result.append(temp_image)
+	for image in image_list:
+		out = gaussian_filter(image, sigma=ssigma)
+		result.append(out)
 
 	return np.asarray(result, dtype='uint8')
     
@@ -105,6 +102,21 @@ def preprocess_image(dir_name):
 
     #Transpose array to be described as a list of lists, where each list is a single pixel's values as it changes over time
     return np.asarray(image_list)
+
+def output_image(images_output, name):
+    dir_name = 'results_'+name
+    if not os.path.exists(dir_name):
+        os.makedirs(dir_name)
+    else:
+        shutil.rmtree(dir_name)
+        os.makedirs(dir_name)
+    image_result = np.asarray(images_output, dtype='uint8') #if values still in range 0-255! 
+    i = 0
+    for single_image in image_result:
+        out = single_image.reshape((240, 320))
+        w = Image.fromarray(out, mode='L')
+        w.save(dir_name+'/out_%s.jpg' % i)
+        i = i + 1
 
 def select_dataset(flag):
     print ("""
@@ -140,15 +152,15 @@ def select_spatial_filter(trans_image_list, thres):
     selection=raw_input("Please Select:") 
     if selection =='1': 
         print "Program is running..."
-        return [BoxSmooth(trans_image_list, 3), "3x3BoxSmooth"]
+        return [BoxSmooth(trans_image_list, 3), "3x3BoxSmooth_"]
     elif selection == '2': 
         print "Program is running..."
-        return [BoxSmooth(trans_image_list, 5), "5x5BoxSmooth"]
+        return [BoxSmooth(trans_image_list, 5), "5x5BoxSmooth_"]
     elif selection == '3':
         print "Program is running..."
-        return 
+        return [GaussianSmooth(trans_image_list, 3), "GaussianSmooth_"]
     elif selection == '4':
-        return trans_image_list
+        return [trans_image_list, "Native_"]
     else: 
         print "Unknown Option Selected!" 
 
@@ -165,11 +177,11 @@ def select_temporal_filter(filtered_trans_image_list, thres):
         if selection =='1': 
             print "Program is running..."
             images_output = diff(filtered_trans_image_list[0], thres)
-            output_image(images_output, "LinearTemporal"+filtered_trans_image_list[1])
+            output_image(images_output, filtered_trans_image_list[1]+"_LinearTemporal")
         elif selection == '2': 
             print "Program is running..."
             images_output = gaussian(filtered_trans_image_list[0], thres)
-            output_image(images_output, "GaussianTemporal"+filtered_trans_image_list[1])
+            output_image(images_output, filtered_trans_image_list[1]+"_GaussianTemporal")
         elif selection == '3': 
             break
         else: 
