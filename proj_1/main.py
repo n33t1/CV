@@ -4,6 +4,7 @@ import glob
 from scipy.ndimage.filters import gaussian_filter
 from scipy import signal
 import os, shutil
+import imageio
 
 image_list = []
 
@@ -49,19 +50,20 @@ def diff(trans_image,thres):
 	return result_array
 
 def output_image(images_output, name):
-    dir_name = name+'_Results'
-    if not os.path.exists(dir_name):
-        os.makedirs(dir_name)
-    else:
-        shutil.rmtree(dir_name)
-        os.makedirs(dir_name)
+    file_name = name+'_Results'
+    # dir
+    # if not os.path.exists(dir_name):
+    #     os.makedirs(dir_name)
+    # else:
+    #     shutil.rmtree(dir_name)
+    #     os.makedirs(dir_name)
     image_result = np.asarray(images_output, dtype='uint8') #if values still in range 0-255! 
-    i = 0
+    result = []
     for single_image in image_result:
-        out = single_image.reshape((240, 320))
-        w = Image.fromarray(out, mode='L')
-        w.save(dir_name+'/out_%s.jpg' % i)
-        i = i + 1
+        single_image = single_image.reshape((240, 320))
+        result.append(np.asarray(single_image))
+    image_result = np.asarray(result, dtype='uint8')
+    imageio.mimsave(file_name +'.gif', image_result)
 
 """function takes np arrary as input, output a np array classified with only 
 pixel value of 0 or 255"""
@@ -102,21 +104,6 @@ def preprocess_image(dir_name):
 
     #Transpose array to be described as a list of lists, where each list is a single pixel's values as it changes over time
     return np.asarray(image_list)
-
-# def output_image(images_output, name):
-#     dir_name = 'results_'+name
-#     if not os.path.exists(dir_name):
-#         os.makedirs(dir_name)
-#     else:
-#         shutil.rmtree(dir_name)
-#         os.makedirs(dir_name)
-#     image_result = np.asarray(images_output, dtype='uint8') #if values still in range 0-255! 
-#     i = 0
-#     for single_image in image_result:
-#         out = single_image.reshape((240, 320))
-#         w = Image.fromarray(out, mode='L')
-#         w.save(dir_name+'/out_%s.jpg' % i)
-#         i = i + 1
 
 def select_dataset(flag):
     print ("""
@@ -164,28 +151,24 @@ def select_spatial_filter(trans_image_list, thres):
     else: 
         print "Unknown Option Selected!" 
 
-def select_temporal_filter(filtered_trans_image_list, thres):
-    while True: 
-        print ("""
-        Which function do you want to use?
-            1. Linear temporal derivative filter
-            2. 1D Gaussian temporal derivative filter
-            3. Exit/Quit
-        """)
+def select_temporal_filter(filtered_trans_image_list, thres): 
+    print ("""
+    Which function do you want to use?
+        1. Linear temporal derivative filter
+        2. 1D Gaussian temporal derivative filter
+    """)
 
-        selection=raw_input("Please Select:") 
-        if selection =='1': 
-            print "Program is running..."
-            images_output = diff(filtered_trans_image_list[0], thres)
-            output_image(images_output, filtered_trans_image_list[1]+"_LinearTemporal")
-        elif selection == '2': 
-            print "Program is running..."
-            images_output = gaussian(filtered_trans_image_list[0], thres)
-            output_image(images_output, filtered_trans_image_list[1]+"_GaussianTemporal")
-        elif selection == '3': 
-            break
-        else: 
-            print "Unknown Option Selected!" 
+    selection=raw_input("Please Select:") 
+    if selection =='1': 
+        print "Program is running..."
+        images_output = diff(filtered_trans_image_list[0], thres)
+        output_image(images_output, filtered_trans_image_list[1]+"_LinearTemporal"+str(thres))
+    elif selection == '2': 
+        print "Program is running..."
+        images_output = gaussian(filtered_trans_image_list[0], thres)
+        output_image(images_output, filtered_trans_image_list[1]+"_GaussianTemporal"+str(thres))
+    else: 
+        print "Unknown Option Selected!" 
     return
 
 # main
@@ -195,6 +178,7 @@ while not flag:
     flag = True
     trans_image_list = select_dataset(flag)
 
-thres = input("Please enter a threshold value: ") 	# Threshold used to determine if something is moving through that pixel
-# prompt the user to select a function to use
-select_temporal_filter(select_spatial_filter(trans_image_list, thres), thres)
+while True:
+    thres = input("Please enter a threshold value: ") 	# Threshold used to determine if something is moving through that pixel
+    # prompt the user to select a function to use
+    select_temporal_filter(select_spatial_filter(trans_image_list, thres), thres)
