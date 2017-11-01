@@ -1,0 +1,6 @@
+*.jpg
+.DS_Store
+/proj_2/DanaOffice/*
+/proj_2/DanaHallWay1/*
+/proj_2/DanaHallWay2/*
+/hw2/*
