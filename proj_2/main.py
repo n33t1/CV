@@ -45,8 +45,6 @@ for img in image_list:
     corner = cv2.goodFeaturesToTrack(img, 60, 1e-6, 5, useHarrisDetector=True)
     corner_list.append(corner)
 
-print len(corner_list[0])
-
 '''
 iii. Find correspondences between the two images: given two set of corners from the
 two images, compute normalized cross correlation (NCC) of image patches centered
@@ -92,6 +90,10 @@ for A in cornerlistA:
 
 ColorImageAB = np.concatenate((color_image_list[0],color_image_list[1]),axis=0)
 ColorImageAB_Compare = copy.deepcopy(ColorImageAB)
+
+ColorImageA_Pers = copy.deepcopy(color_image_list[0])
+ColorImageB_Pers = copy.deepcopy(color_image_list[1])
+
 imageACopy, imageBCopy = color_image_list[0], color_image_list[1]
 
 src = []
@@ -109,7 +111,7 @@ for i in range(len(NCCVals)):
             tmp = (cornerPairB[0], cornerPairB[1]+m)
             cv2.circle(imageACopy, cornerPairA, 5, (255,0,0))
             cv2.circle(imageBCopy, cornerPairB, 5, (255,0,0))
-            cv2.line(ColorImageAB,cornerPairA,tmp,(255,0,0))
+            cv2.line(ColorImageAB, cornerPairA, tmp, (255,0,0))
 
 '''
 iv. Estimate the homography using the above correspondences. Note that these correspondences
@@ -126,35 +128,45 @@ largest set of inliers.
 '''
 
 # Parameters for RANSAC parameters
-nIterMax, numSample, thresDistance, thresNumMatch = 100, 10, 1e-3, 2
+nIterMax, numSample, thresDistance, thresNumMatch = 1000, 4, 50, 200
 
-src = np.array(src)
-dst = np.array(dst)
+src = np.array(src).astype('float')
+dst = np.array(dst).astype('float')
+cnt = np.zeros((src.shape[0],1))
 
-# for i in range(100):
-#     randSamplePoints = random.sample(range(len(src)), numSample)
-#     srcSample = src[randSamplePoints,:]
-#     dstSample = dst[randSamplePoints,:]
-#     mtrA = np.zeros((len(srcSample),9))
-#     assert len(srcSample) >= 8
-#     for i in range(srcSample.shape[0]):
-#         [x1,y1,x2,y2] = [srcSample[i,0],srcSample[i,1],dstSample[i,0], dstSample[i,1]]
-#         mtrA[i,:] = np.array([ x1 * x2, x1 * y2, x1, y1 * x2, y1 * y2, y1, x2, y2, 1])
-#     u,s,v = np.linalg.svd(mtrA.T.dot(mtrA))
-#     h = u[:,-1].reshape(3,3)
-    # for i in list(set(range(len(src))) - set(randSamplePoints)):
-    #     distance = np.hstack((dst[i],1)).dot(h.dot(np.hstack((src[i],1)).reshape(3,1)))
-    #     if abs(distance) < thresDistance:
-    #         cnt[randSamplePoints,0] += 1
+for num in range(nIterMax):
+    randSamplePoints = random.sample(range(len(src)), numSample)
+    srcSample = src[randSamplePoints,:]
+    dstSample = dst[randSamplePoints,:]
+    h, status = cv2.findHomography(srcSample, dstSample, cv2.RANSAC, 5)=
+    for i in list(set(range(len(src))) - set(randSamplePoints)):
+        dis_x = dst[i,0] - (h[0,:].dot(np.hstack((src[i],1)).reshape(3,1))) / (h[2,:].dot(np.hstack((src[i],1)).reshape(3,1)))
+        dis_y = dst[i,1] - (h[1,:].dot(np.hstack((src[i],1)).reshape(3,1))) / (h[2,:].dot(np.hstack((src[i],1)).reshape(3,1)))
+        if ((dis_x * dis_x) + (dis_y * dis_y))**(.5) < thresDistance:
+            cnt[i,0] += 1
 
-# cnt = np.zeros((src.shape[0],1))
-# selectedPairs = []
-# for i in range(len(src)):
-#     if cnt[i,0] > thresNumMatch:
-#         s = (src[i,0], src[i,1])
-#         d = (dst[i,0], dst[i,1] + n)
-#         cv2.line(ColorImageAB_Compare, s, d, (0,0,255))
-#         selectedPairs.append(i)
+selectedPairs = []
+for i in range(len(src)):
+    if cnt[i,0] >= thresNumMatch:
+        s = (src[i,0].astype('int'), src[i,1].astype('int'))
+        d = (dst[i,0].astype('int'), dst[i,1].astype('int') + m)
+        cv2.line(ColorImageAB_Compare, s, d, (0,0,255))
+        selectedPairs.append(i)
+
+# Calculate Precise Homography
+srcSample = src[selectedPairs,:]
+dstSample = dst[selectedPairs,:]
+h, status = cv2.findHomography(src, dst, cv2.RANSAC, 5)
+
+ColorImageAB_Pers = cv2.warpPerspective(ColorImageB_Pers, h,
+ 			(ColorImageB_Pers.shape[1] + 300, ColorImageB_Pers.shape[0] + 100), flags=cv2.WARP_INVERSE_MAP)
+
+for i in range(len(ColorImageA_Pers)):
+    for j in range(len(ColorImageA_Pers[0])):
+        if ColorImageAB_Pers[i][j].all() == 0:
+            ColorImageAB_Pers[i][j] = ColorImageA_Pers[i][j]
+        elif ColorImageA_Pers[i][j].any() != 0:
+            ColorImageAB_Pers[i][j] = ColorImageA_Pers[i][j] / [2,2,2] + ColorImageAB_Pers[i][j] / [2,2,2]
 
 plt.figure(1)
 plt.imshow(imageACopy)
@@ -162,6 +174,8 @@ plt.figure(2)
 plt.imshow(imageBCopy)
 plt.figure(3)
 plt.imshow(ColorImageAB)
-# plt.figure(4)
-# plt.imshow(ColorImageAB_Compare)
+plt.figure(4)
+plt.imshow(ColorImageAB_Compare)
+plt.figure(5)
+plt.imshow(ColorImageAB_Pers)
 plt.show()
