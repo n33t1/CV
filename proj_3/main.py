@@ -29,44 +29,51 @@ def preprocess_image(dir_name):
 image_list = []
 preprocess_image('LKTestpgm')
 
-plt.subplot(2,2,1),plt.imshow(image_list[0])
-plt.title('Image 1'), plt.xticks([]), plt.yticks([])
-plt.subplot(2,2,2),plt.imshow(image_list[1])
-plt.title('Image 1'), plt.xticks([]), plt.yticks([])
-
-plt.show()
-
 '''
 2. Compute the spatial intensity gradients Ix and Iy of image2. Recall that it is a good idea to
 smooth before taking the derivative, for example by using derivative of Gaussian operators.
 '''
-#Take the Guassian derivative so it's smoothed in the process
-#Could do this by creative the gaussian kernel first, but this should be fine since it's not the important part
+# Take the Guassian derivative so it's smoothed in the process
+# Could do this by creative the gaussian kernel first, but this should be fine since it's not the important part
+Ssigma = 2
 Ix = []
 Iy = []
-
-Ix.append(scipy.ndimage.filters.gaussian_filter1d(image_list[0], 2, axis=1, order=1, mode='reflect', truncate=4.0))
-Iy.append(scipy.ndimage.filters.gaussian_filter1d(image_list[0], 2, axis=0, order=1, mode='reflect', truncate=4.0))
-Ix.append(scipy.ndimage.filters.gaussian_filter1d(image_list[1], 2, axis=1, order=1, mode='reflect', truncate=4.0))
-Iy.append(scipy.ndimage.filters.gaussian_filter1d(image_list[1], 2, axis=0, order=1, mode='reflect', truncate=4.0))
-
-plt.subplot(2,2,1),plt.imshow(Ix[0])
-plt.title('Ix 1'), plt.xticks([]), plt.yticks([])
-plt.subplot(2,2,2),plt.imshow(Iy[0])
-plt.title('Iy 1'), plt.xticks([]), plt.yticks([])
-plt.subplot(2,2,3),plt.imshow(Ix[1])
-plt.title('Ix 2'), plt.xticks([]), plt.yticks([])
-plt.subplot(2,2,4),plt.imshow(Iy[1])
-plt.title('Iy 2'), plt.xticks([]), plt.yticks([])
-
-plt.show()
+Ix.append(scipy.ndimage.filters.gaussian_filter1d(image_list[0], Ssigma, axis=1, order=1, mode='reflect', truncate=4.0))
+Iy.append(scipy.ndimage.filters.gaussian_filter1d(image_list[0], Ssigma, axis=0, order=1, mode='reflect', truncate=4.0))
+Ix.append(scipy.ndimage.filters.gaussian_filter1d(image_list[1], Ssigma, axis=1, order=1, mode='reflect', truncate=4.0))
+Iy.append(scipy.ndimage.filters.gaussian_filter1d(image_list[1], Ssigma, axis=0, order=1, mode='reflect', truncate=4.0))
 
 '''
 3. Compute the temporal gradient It by subtracting a smoothed version of image1 from a
 smoothed version of image2.
 '''
-It = []
+Tsigma = 3
+smooth_images = []
+smooth_images.append(scipy.ndimage.filters.gaussian_filter(image_list[0], Tsigma, order=0, mode='reflect', truncate=4.0))
+smooth_images.append(scipy.ndimage.filters.gaussian_filter(image_list[1], Tsigma, order=0, mode='reflect', truncate=4.0))
 
+It = np.subtract(smooth_images[1], smooth_images[0])
+
+'''
+Display results so far
+'''
+plt.subplot(3,3,1), plt.imshow(image_list[0])
+plt.title('Image 1'), plt.xticks([]), plt.yticks([])
+plt.subplot(3,3,2), plt.imshow(image_list[1])
+plt.title('Image 2'), plt.xticks([]), plt.yticks([])
+plt.subplot(3,3,3), plt.imshow(It)
+plt.title('It'), plt.xticks([]), plt.yticks([])
+plt.subplot(3,3,4), plt.imshow(Ix[0])
+plt.title('Ix 1'), plt.xticks([]), plt.yticks([])
+plt.subplot(3,3,5), plt.imshow(Ix[1])
+plt.title('Ix 2'), plt.xticks([]), plt.yticks([])
+plt.subplot(3,3,7), plt.imshow(Iy[0])
+plt.title('Iy 1'), plt.xticks([]), plt.yticks([])
+plt.subplot(3,3,8), plt.imshow(Iy[1])
+plt.title('Iy 2'), plt.xticks([]), plt.yticks([])
+
+# Comment out this line to remove pause
+plt.show()
 
 '''
 4. For a given window size W, form a system of linear equations at each pixel by summing over
