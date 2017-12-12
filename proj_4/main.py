@@ -28,6 +28,8 @@ from optparse import OptionParser
 
 import scipy.misc
 import pylab
+import numpy as np
+from copy import deepcopy
 
 debug = False
 
@@ -394,7 +396,26 @@ def plot_tracking(frame, pos, target_sz, im, ground_truth):
     pylab.waitforbuttonpress(timeout=timeout)
 
     return
-
+    
+def isOcclusion(filer_response):
+    # print("filer_response:", filer_response)
+    # find index of g_max
+    x, y = np.unravel_index(filer_response.argmax(), filer_response.shape)
+    g_max = filer_response[x][y]
+    window_radius = 6
+    def inBound(i, j):
+        return -1 < i < filer_response.shape[0] and -1 < j < filer_response.shape[1]
+    # replace values inside of window with np.nan in order to get sidelobe
+    for i in range(x-window_radius, x+window_radius+1):
+        for j in range(y-window_radius, y+window_radius+1):
+            if inBound(i, j):
+                filer_response[i][j] = np.nan
+    mean = np.nanmean(filer_response)
+    sigma = np.nanstd(filer_response)
+    PSR = (g_max - mean) / sigma
+    # print("PSR: ", PSR)
+    thres = 0
+    return PSR > thres
 
 def track(input_video_path):
     """
@@ -467,6 +488,10 @@ def track(input_video_path):
         if not is_first_frame:
             # calculate response of the classifier at all locations
             k = dense_gauss_kernel(sigma, x, z)
+            if isOcclusion(deepcopy(k)):
+                # Recovery from Occlusion
+                pass
+                
             kf = pylab.fft2(k)
             alphaf_kf = pylab.multiply(alphaf, kf)
             response = pylab.real(pylab.ifft2(alphaf_kf))  # Eq. 9
